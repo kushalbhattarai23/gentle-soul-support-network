@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/Button';
 import { Tv, Wallet, Home } from 'lucide-react';
 
 export const AppFooter: React.FC = () => {
