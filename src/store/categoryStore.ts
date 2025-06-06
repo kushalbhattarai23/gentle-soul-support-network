@@ -1,3 +1,4 @@
+
 import { create } from 'zustand';
 import { supabase } from '../integrations/supabase/client';
 
@@ -7,14 +8,13 @@ interface Category {
   color: string;
   user_id: string;
   created_at: string;
-  updated_at: string;
 }
 
 interface CategoryStore {
   categories: Category[];
   isLoading: boolean;
   fetchCategories: () => Promise<void>;
-  addCategory: (category: Omit<Category, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => Promise<void>;
+  addCategory: (category: Omit<Category, 'id' | 'user_id' | 'created_at'>) => Promise<void>;
   updateCategory: (id: string, category: Partial<Category>) => Promise<void>;
   deleteCategory: (id: string) => Promise<void>;
 }
@@ -22,7 +22,7 @@ interface CategoryStore {
 export const useCategoryStore = create<CategoryStore>((set, get) => ({
   categories: [],
   isLoading: false,
-
+  
   fetchCategories: async () => {
     set({ isLoading: true });
     try {
