@@ -1,95 +1,92 @@
-import React from 'react';
-import { ArrowRight } from 'lucide-react';
+
+import React, { useEffect } from 'react';
 import { format } from 'date-fns';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
-import { Button } from '../ui/Button';
-import { Transaction, Wallet } from '../../types';
+import { ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { useTransactionStore } from '../../store/transactionStore';
+import { useCategoryStore } from '../../store/categoryStore';
+import { useWalletStore } from '../../store/walletStore';
 
-interface RecentTransactionsProps {
-  transactions: Transaction[];
-  wallets: Wallet[];
-}
+export const RecentTransactions: React.FC = () => {
+  const { transactions, fetchTransactions } = useTransactionStore();
+  const { categories, fetchCategories } = useCategoryStore();
+  const { wallets, fetchWallets } = useWalletStore();
 
-export const RecentTransactions: React.FC<RecentTransactionsProps> = ({
-  transactions,
-  wallets,
-}) => {
+  useEffect(() => {
+    fetchTransactions();
+    fetchCategories();
+    fetchWallets();
+  }, [fetchTransactions, fetchCategories, fetchWallets]);
+
+  const recentTransactions = transactions.slice(0, 5);
+
+  const getCategoryName = (categoryId: string) => {
+    const category = categories.find(c => c.id === categoryId);
+    return category?.name || 'Unknown';
+  };
+
   const getWalletName = (walletId: string) => {
     const wallet = wallets.find(w => w.id === walletId);
-    return wallet ? wallet.name : 'Unknown Wallet';
+    return wallet?.name || 'Unknown';
   };
-  
-  const getWalletCurrency = (walletId: string) => {
+
+  const formatCurrency = (amount: number, walletId: string) => {
     const wallet = wallets.find(w => w.id === walletId);
-    return wallet ? wallet.currency : 'USD';
-  };
-  
-  const formatCurrency = (amount: number | undefined, walletId: string) => {
-    if (amount === undefined) return '';
+    const currency = wallet?.currency || 'USD';
     
-    const currency = getWalletCurrency(walletId);
-    return new Intl.NumberFormat('en-IN', {
+    const formatted = new Intl.NumberFormat('en-IN', {
       style: 'currency',
       currency: currency,
-    }).format(amount);
+      currencyDisplay: 'code',
+    }).format(Math.abs(amount));
+
+    return currency === 'NPR' ? formatted.replace('NPR', 'रु') : formatted;
   };
-  
-  const recentTransactions = transactions.slice(0, 5);
-  
+
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-xl font-bold">Recent Transactions</CardTitle>
-        <Button variant="ghost" size="sm" rightIcon={<ArrowRight size={16} />}>
-          <a href="/transactions">View All</a>
-        </Button>
+      <CardHeader>
+        <CardTitle>Recent Transactions</CardTitle>
       </CardHeader>
       <CardContent>
-        {recentTransactions.length === 0 ? (
-          <div className="text-center py-6">
-            <p className="text-slate-500">No recent transactions.</p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {recentTransactions.map((transaction) => (
-              <div
-                key={transaction.id}
-                className="flex items-center justify-between py-3 border-b border-slate-100 last:border-0"
-              >
-                <div className="flex items-start">
-                  <div className={`p-2 rounded-full ${transaction.income ? 'bg-green-100' : 'bg-red-100'}`}>
-                    <span className={`text-xs font-semibold ${transaction.income ? 'text-green-700' : 'text-red-700'}`}>
-                      {transaction.type.substring(0, 2).toUpperCase()}
-                    </span>
-                  </div>
-                  <div className="ml-4">
-                    <h4 className="text-sm font-medium text-slate-900">{transaction.reason}</h4>
-                    <div className="flex items-center mt-1">
-                      <span className="text-xs text-slate-500">
-                        {format(new Date(transaction.date), 'MMM dd, yyyy')}
-                      </span>
-                      <span className="mx-2 text-xs text-slate-300">•</span>
-                      <span className="text-xs text-slate-500">
-                        {getWalletName(transaction.wallet_id)}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <div>
-                  {transaction.income ? (
-                    <span className="text-sm font-medium text-green-600">
-                      +{formatCurrency(transaction.income, transaction.wallet_id)}
-                    </span>
+        <div className="space-y-4">
+          {recentTransactions.map((transaction) => (
+            <div key={transaction.id} className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className={`h-10 w-10 rounded-full flex items-center justify-center ${
+                  transaction.amount > 0 ? 'bg-green-100' : 'bg-red-100'
+                }`}>
+                  {transaction.amount > 0 ? (
+                    <ArrowUpRight className="h-5 w-5 text-green-600" />
                   ) : (
-                    <span className="text-sm font-medium text-red-600">
-                      -{formatCurrency(transaction.expense, transaction.wallet_id)}
-                    </span>
+                    <ArrowDownRight className="h-5 w-5 text-red-600" />
                   )}
                 </div>
+                <div>
+                  <p className="font-medium">{transaction.description}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {getCategoryName(transaction.category_id)} • {getWalletName(transaction.wallet_id)}
+                  </p>
+                </div>
               </div>
-            ))}
-          </div>
-        )}
+              <div className="text-right">
+                <p className={`font-medium ${
+                  transaction.amount > 0 ? 'text-green-600' : 'text-red-600'
+                }`}>
+                  {transaction.amount > 0 ? '+' : '-'}{formatCurrency(transaction.amount, transaction.wallet_id)}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {format(new Date(transaction.date), 'MMM dd')}
+                </p>
+              </div>
+            </div>
+          ))}
+          {recentTransactions.length === 0 && (
+            <p className="text-center text-muted-foreground py-8">
+              No transactions yet. Add your first transaction to get started.
+            </p>
+          )}
+        </div>
       </CardContent>
     </Card>
   );

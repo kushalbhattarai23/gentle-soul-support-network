@@ -1,14 +1,29 @@
+
 import React, { useState, useEffect } from 'react';
-import { Tag } from 'lucide-react';
-import { Input } from '../ui/Input';
+import { Tag, Palette } from 'lucide-react';
+import { Input } from '../ui/input';
 import { Button } from '../ui/Button';
-import { Category } from '../../types';
+
+interface Category {
+  id: string;
+  name: string;
+  color: string;
+  user_id: string;
+  created_at: string;
+}
 
 interface CategoryFormProps {
   category?: Category;
-  onSubmit: (data: Omit<Category, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => void;
+  onSubmit: (data: Omit<Category, 'id' | 'user_id' | 'created_at'>) => void;
   isLoading: boolean;
 }
+
+const colors = [
+  '#ef4444', '#f97316', '#f59e0b', '#eab308', '#84cc16',
+  '#22c55e', '#10b981', '#14b8a6', '#06b6d4', '#0ea5e9',
+  '#3b82f6', '#6366f1', '#8b5cf6', '#a855f7', '#d946ef',
+  '#ec4899', '#f43f5e'
+];
 
 export const CategoryForm: React.FC<CategoryFormProps> = ({
   category,
@@ -16,7 +31,7 @@ export const CategoryForm: React.FC<CategoryFormProps> = ({
   isLoading,
 }) => {
   const [name, setName] = useState('');
-  const [color, setColor] = useState('#3B82F6');
+  const [color, setColor] = useState('#3b82f6');
   
   useEffect(() => {
     if (category) {
@@ -38,7 +53,7 @@ export const CategoryForm: React.FC<CategoryFormProps> = ({
     <form onSubmit={handleSubmit} className="space-y-4">
       <Input
         label="Category Name"
-        placeholder="e.g., Food, Transportation"
+        placeholder="e.g., Food, Transportation, Entertainment"
         value={name}
         onChange={(e) => setName(e.target.value)}
         required
@@ -46,15 +61,25 @@ export const CategoryForm: React.FC<CategoryFormProps> = ({
       />
       
       <div>
-        <label className="block text-sm font-medium text-slate-700 mb-1">
+        <label className="block text-sm font-medium text-slate-700 mb-2">
           Color
         </label>
-        <input
-          type="color"
-          value={color}
-          onChange={(e) => setColor(e.target.value)}
-          className="w-full h-10 p-1 rounded-md border border-slate-300"
-        />
+        <div className="flex items-center space-x-3">
+          <Palette size={18} className="text-slate-400" />
+          <div className="grid grid-cols-6 gap-2">
+            {colors.map((colorOption) => (
+              <button
+                key={colorOption}
+                type="button"
+                className={`w-8 h-8 rounded-full border-2 ${
+                  color === colorOption ? 'border-slate-400' : 'border-transparent'
+                }`}
+                style={{ backgroundColor: colorOption }}
+                onClick={() => setColor(colorOption)}
+              />
+            ))}
+          </div>
+        </div>
       </div>
       
       <Button type="submit" isLoading={isLoading} className="w-full mt-6">
