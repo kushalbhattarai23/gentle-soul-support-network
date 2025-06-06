@@ -1,8 +1,9 @@
+
 import React, { useState } from 'react';
 import { Mail, Lock, User, LogIn } from 'lucide-react';
-import { Input } from '../ui/Input';
+import { Input } from '../ui/input';
 import { Button } from '../ui/Button';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '../ui/Card';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '../ui/card';
 import { useAuthStore } from '../../store/authStore';
 
 interface AuthFormProps {
