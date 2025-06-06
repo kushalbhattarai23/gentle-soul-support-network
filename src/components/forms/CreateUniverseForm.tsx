@@ -21,7 +21,7 @@ export const CreateUniverseForm: React.FC<CreateUniverseFormProps> = ({ onSucces
   });
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!user) {
       toast({
@@ -92,7 +92,7 @@ export const CreateUniverseForm: React.FC<CreateUniverseFormProps> = ({ onSucces
               id="name"
               type="text"
               value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, name: e.target.value })}
               placeholder="e.g., Marvel Cinematic Universe"
               required
             />
@@ -105,7 +105,7 @@ export const CreateUniverseForm: React.FC<CreateUniverseFormProps> = ({ onSucces
             <Textarea
               id="description"
               value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormData({ ...formData, description: e.target.value })}
               placeholder="Describe what this universe contains..."
               rows={3}
             />

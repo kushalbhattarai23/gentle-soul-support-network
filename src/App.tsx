@@ -1,9 +1,13 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './store/authStore';
 import { AuthProvider } from './components/auth/AuthProvider';
 import { Navigation } from './components/Navigation';
+import { AppFooter } from './components/layout/AppFooter';
 import { Toaster } from '@/components/ui/toaster';
+
+// Landing Page
+import { LandingPage } from './pages/LandingPage';
 
 // Pages from App 1
 import { Dashboard } from './pages/Dashboard';
@@ -48,14 +52,16 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <div className="min-h-screen bg-background">
+        <div className="min-h-screen bg-background flex flex-col">
           {user && <Navigation />}
-          <main className="container mx-auto px-4 py-8">
+          <main className="flex-1">
             <Routes>
               {user ? (
                 <>
-                  {/* Original app routes */}
-                  <Route path="/" element={<Dashboard />} />
+                  {/* Landing Page */}
+                  <Route path="/" element={<LandingPage />} />
+                  
+                  {/* TV Show Tracker routes */}
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/admin" element={<AdminPortal />} />
                   <Route path="/shows/public" element={<PublicShows />} />
@@ -67,7 +73,8 @@ function App() {
                   <Route path="/universe/:universeSlug/dashboard" element={<UniverseDashboard />} />
                   <Route path="/show/:showSlug" element={<ShowDetail />} />
 
-                  {/* Added from second app */}
+                  {/* Finance Tracker routes */}
+                  <Route path="/financedashboard" element={<DashboardPage />} />
                   <Route path="/wallets" element={<WalletsPage />} />
                   <Route path="/wallets/:id" element={<WalletDetailsPage />} />
                   <Route path="/transactions" element={<TransactionsPage />} />
@@ -76,22 +83,24 @@ function App() {
                   <Route path="/categories" element={<CategoriesPage />} />
 
                   {/* Catch-all redirect */}
-                  <Route path="*" element={<Navigate to="/" replace />} />
+                  <Route path="*" element={<Navigate to="/\" replace />} />
                 </>
               ) : (
                 <>
                   {/* Public-only routes */}
+                  <Route path="/" element={<Navigate to="/sign-in\" replace />} />
                   <Route path="/sign-in" element={<SignIn />} />
                   <Route path="/sign-up" element={<SignUp />} />
                   <Route path="/signin" element={<SignInPage />} />
                   <Route path="/signup" element={<SignUpPage />} />
 
                   {/* Catch-all redirect for unauthenticated users */}
-                  <Route path="*" element={<Navigate to="/sign-in" replace />} />
+                  <Route path="*" element={<Navigate to="/sign-in\" replace />} />
                 </>
               )}
             </Routes>
           </main>
+          <AppFooter />
         </div>
         <Toaster />
       </AuthProvider>

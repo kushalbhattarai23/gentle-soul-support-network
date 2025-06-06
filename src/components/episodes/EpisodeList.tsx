@@ -1,23 +1,21 @@
 
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Eye, EyeOff } from 'lucide-react';
+import { CheckCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '../auth/AuthProvider';
+import { useAuth } from '@/components/auth/AuthProvider';
 import { useToast } from '@/hooks/use-toast';
 
 interface Episode {
   id: string;
-  episode_number: number;
-  season_number: number;
   title: string;
-  air_date: string | null;
-}
-
-interface EpisodeWithStatus extends Episode {
-  user_status?: 'watched' | 'not_watched';
+  season_number: number;
+  episode_number: number;
+  air_date?: string;
+  description?: string;
+  is_watched?: boolean;
 }
 
 interface EpisodeListProps {
@@ -26,7 +24,7 @@ interface EpisodeListProps {
 }
 
 export const EpisodeList: React.FC<EpisodeListProps> = ({ showId, showTitle }) => {
-  const [episodes, setEpisodes] = useState<EpisodeWithStatus[]>([]);
+  const [episodes, setEpisodes] = useState<Episode[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   const { toast } = useToast();
@@ -37,142 +35,183 @@ export const EpisodeList: React.FC<EpisodeListProps> = ({ showId, showTitle }) =
 
   const fetchEpisodes = async () => {
     try {
-      // Fetch episodes
-      const { data: episodesData, error: episodesError } = await supabase
+      const { data, error } = await supabase
         .from('episodes')
         .select('*')
         .eq('show_id', showId)
         .order('season_number', { ascending: true })
         .order('episode_number', { ascending: true });
 
-      if (episodesError) throw episodesError;
+      if (error) throw error;
 
-      // If user is logged in, fetch their watch status
-      let episodesWithStatus = episodesData || [];
-      
+      let episodesWithStatus = data || [];
+
       if (user) {
-        const { data: statusData, error: statusError } = await supabase
-          .from('user_episode_status')
-          .select('episode_id, status')
-          .eq('user_id', user.id)
-          .in('episode_id', episodesData?.map(ep => ep.id) || []);
+        const episodeIds = episodesWithStatus.map((ep: any) => ep.id);
+        if (episodeIds.length > 0) {
+          const { data: watchedEpisodes, error: watchError } = await supabase
+            .from('user_episode_status')
+            .select('episode_id')
+            .eq('user_id', user.id)
+            .eq('status', 'watched')
+            .in('episode_id', episodeIds);
 
-        if (statusError) throw statusError;
-
-        const statusMap = new Map(statusData?.map(s => [s.episode_id, s.status]) || []);
-        
-        episodesWithStatus = episodesData?.map(episode => ({
-          ...episode,
-          user_status: statusMap.get(episode.id) || 'not_watched'
-        })) || [];
+          if (!watchError) {
+            const watchedEpisodeIds = new Set(
+              watchedEpisodes?.map((we: any) => we.episode_id) || []
+            );
+            episodesWithStatus = episodesWithStatus.map((ep: any) => ({
+              ...ep,
+              is_watched: watchedEpisodeIds.has(ep.id),
+            }));
+          }
+        }
       }
 
       setEpisodes(episodesWithStatus);
-    } catch (error: any) {
+    } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to load episodes",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to load episodes',
+        variant: 'destructive',
       });
     } finally {
       setLoading(false);
     }
   };
 
-  const toggleWatchStatus = async (episodeId: string, currentStatus: 'watched' | 'not_watched') => {
+  const toggleWatchStatus = async (episodeId: string, currentlyWatched: boolean) => {
     if (!user) {
       toast({
-        title: "Sign in required",
-        description: "Please sign in to track your watch progress",
+        title: 'Error',
+        description: 'You must be signed in to track episodes',
+        variant: 'destructive',
       });
       return;
     }
 
-    const newStatus = currentStatus === 'watched' ? 'not_watched' : 'watched';
-
     try {
-      const { error } = await supabase
-        .from('user_episode_status')
-        .upsert({
-          user_id: user.id,
-          episode_id: episodeId,
-          status: newStatus,
-          watched_at: newStatus === 'watched' ? new Date().toISOString() : null,
-        });
+      if (currentlyWatched) {
+        const { error } = await supabase
+          .from('user_episode_status')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('episode_id', episodeId);
 
-      if (error) throw error;
+        if (error) throw error;
 
-      // Update local state
-      setEpisodes(prev => prev.map(ep => 
-        ep.id === episodeId 
-          ? { ...ep, user_status: newStatus }
-          : ep
-      ));
+        setEpisodes(prev =>
+          prev.map(ep =>
+            ep.id === episodeId ? { ...ep, is_watched: false } : ep
+          )
+        );
+      } else {
+        const { error } = await supabase
+          .from('user_episode_status')
+          .upsert({
+            user_id: user.id,
+            episode_id: episodeId,
+            status: 'watched',
+            watched_at: new Date().toISOString(),
+          });
+
+        if (error) throw error;
+
+        setEpisodes(prev =>
+          prev.map(ep =>
+            ep.id === episodeId ? { ...ep, is_watched: true } : ep
+          )
+        );
+      }
 
       toast({
-        title: newStatus === 'watched' ? "Marked as watched" : "Marked as not watched",
-        description: `Episode status updated successfully`,
+        title: 'Success',
+        description: `Episode marked as ${currentlyWatched ? 'unwatched' : 'watched'}`,
       });
-    } catch (error: any) {
+    } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to update episode status",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to update watch status',
+        variant: 'destructive',
       });
     }
   };
 
   if (loading) {
-    return <div className="text-center py-8">Loading episodes...</div>;
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <div className="text-center">Loading episodes...</div>
+        </CardContent>
+      </Card>
+    );
   }
+
+  const groupedEpisodes = episodes.reduce((acc, episode) => {
+    const season = episode.season_number;
+    if (!acc[season]) {
+      acc[season] = [];
+    }
+    acc[season].push(episode);
+    return acc;
+  }, {} as Record<number, Episode[]>);
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">{showTitle} - Episodes</h2>
-        <Badge variant="secondary">{episodes.length} episodes</Badge>
-      </div>
-
-      <div className="grid gap-4">
-        {episodes.map((episode) => (
-          <Card key={episode.id}>
+      <h2 className="text-2xl font-bold">{showTitle} - Episodes</h2>
+      
+      {Object.entries(groupedEpisodes)
+        .sort(([a], [b]) => Number(a) - Number(b))
+        .map(([season, seasonEpisodes]) => (
+          <Card key={season}>
             <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span>
-                  S{episode.season_number}E{episode.episode_number}: {episode.title}
-                </span>
-                <div className="flex items-center space-x-2">
-                  {episode.air_date && (
-                    <div className="flex items-center text-sm text-gray-500">
-                      <Calendar className="h-4 w-4 mr-1" />
-                      {new Date(episode.air_date).toLocaleDateString()}
-                    </div>
-                  )}
-                  {user && (
-                    <Button
-                      variant={episode.user_status === 'watched' ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => toggleWatchStatus(episode.id, episode.user_status || 'not_watched')}
-                    >
-                      {episode.user_status === 'watched' ? (
-                        <>
-                          <Eye className="h-4 w-4 mr-1" />
-                          Watched
-                        </>
-                      ) : (
-                        <>
-                          <EyeOff className="h-4 w-4 mr-1" />
-                          Not Watched
-                        </>
-                      )}
-                    </Button>
-                  )}
-                </div>
-              </CardTitle>
+              <CardTitle>Season {season}</CardTitle>
             </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {seasonEpisodes.map((episode) => (
+                  <div
+                    key={episode.id}
+                    className={`flex items-center justify-between p-4 rounded-lg border ${
+                      episode.is_watched
+                        ? 'bg-green-50 border-green-200'
+                        : 'bg-gray-50 border-gray-200'
+                    }`}
+                  >
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3">
+                        <Badge variant="secondary">
+                          S{episode.season_number}E{episode.episode_number}
+                        </Badge>
+                        <h3 className="font-medium">{episode.title}</h3>
+                        {episode.is_watched && (
+                          <CheckCircle className="h-5 w-5 text-green-600" />
+                        )}
+                      </div>
+                      {episode.description && (
+                        <p className="text-sm text-gray-600 mt-1">
+                          {episode.description}
+                        </p>
+                      )}
+                      {episode.air_date && (
+                        <p className="text-sm text-gray-500 mt-1">
+                          Air Date: {new Date(episode.air_date).toLocaleDateString()}
+                        </p>
+                      )}
+                    </div>
+                    <Button
+                      variant={episode.is_watched ? 'outline' : 'default'}
+                      size="sm"
+                      onClick={() => toggleWatchStatus(episode.id, episode.is_watched || false)}
+                    >
+                      {episode.is_watched ? 'Mark Unwatched' : 'Mark Watched'}
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
           </Card>
         ))}
-      </div>
     </div>
   );
 };

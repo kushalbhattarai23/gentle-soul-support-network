@@ -1,143 +1,134 @@
 import { create } from 'zustand';
-import { supabase } from '../lib/supabase';
-import { Wallet } from '../types';
+import { supabase } from '../integrations/supabase/client';
 
-interface WalletState {
+interface Wallet {
+  id: string;
+  name: string;
+  balance: number;
+  currency: string;
+  user_id: string;
+  created_at: string;
+}
+
+interface WalletStore {
   wallets: Wallet[];
   selectedWallet: Wallet | null;
   isLoading: boolean;
-  error: string | null;
   fetchWallets: () => Promise<void>;
   addWallet: (wallet: Omit<Wallet, 'id' | 'user_id' | 'created_at'>) => Promise<void>;
-  updateWallet: (id: string, updates: Partial<Wallet>) => Promise<void>;
+  updateWallet: (id: string, wallet: Partial<Wallet>) => Promise<void>;
   deleteWallet: (id: string) => Promise<void>;
-  selectWallet: (wallet: Wallet | null) => void;
+  selectWallet: (wallet: Wallet) => void;
 }
 
-export const useWalletStore = create<WalletState>((set, get) => ({
+export const useWalletStore = create<WalletStore>((set, get) => ({
   wallets: [],
   selectedWallet: null,
   isLoading: false,
-  error: null,
   
   fetchWallets: async () => {
-    set({ isLoading: true, error: null });
-    
+    set({ isLoading: true });
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        throw new Error('No authenticated session found');
-      }
-      
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
       const { data, error } = await supabase
         .from('wallets')
         .select('*')
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
-        
+
       if (error) throw error;
-      
-      set({ wallets: data as Wallet[] });
-    } catch (error: any) {
-      set({ error: error.message });
-      console.error('Error fetching wallets:', error.message);
+      set({ wallets: data || [] });
+    } catch (error) {
+      console.error('Error fetching wallets:', error);
+      set({ wallets: [] });
     } finally {
       set({ isLoading: false });
     }
   },
-  
-  addWallet: async (wallet) => {
-    set({ isLoading: true, error: null });
-    
+
+  addWallet: async (walletData) => {
+    set({ isLoading: true });
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        throw new Error('No authenticated session found');
-      }
-      
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
       const { data, error } = await supabase
         .from('wallets')
-        .insert([{ ...wallet, user_id: session.user.id }])
-        .select();
-        
+        .insert([{ ...walletData, user_id: user.id }])
+        .select()
+        .single();
+
       if (error) throw error;
       
-      set(state => ({ 
-        wallets: [data[0] as Wallet, ...state.wallets]
-      }));
-    } catch (error: any) {
-      set({ error: error.message });
-      console.error('Error adding wallet:', error.message);
+      const { wallets } = get();
+      set({ wallets: [data, ...wallets] });
+    } catch (error) {
+      console.error('Error adding wallet:', error);
+      throw error;
     } finally {
       set({ isLoading: false });
     }
   },
-  
-  updateWallet: async (id, updates) => {
-    set({ isLoading: true, error: null });
-    
+
+  updateWallet: async (id, walletData) => {
+    set({ isLoading: true });
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        throw new Error('No authenticated session found');
-      }
-      
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
       const { data, error } = await supabase
         .from('wallets')
-        .update(updates)
+        .update(walletData)
         .eq('id', id)
-        .select();
-        
+        .eq('user_id', user.id)
+        .select()
+        .single();
+
       if (error) throw error;
       
-      set(state => ({
-        wallets: state.wallets.map(wallet => 
-          wallet.id === id ? { ...wallet, ...updates } : wallet
-        ),
-        selectedWallet: state.selectedWallet?.id === id 
-          ? { ...state.selectedWallet, ...updates } 
-          : state.selectedWallet
-      }));
-    } catch (error: any) {
-      set({ error: error.message });
-      console.error('Error updating wallet:', error.message);
+      const { wallets } = get();
+      set({ 
+        wallets: wallets.map(w => w.id === id ? data : w),
+        selectedWallet: get().selectedWallet?.id === id ? data : get().selectedWallet
+      });
+    } catch (error) {
+      console.error('Error updating wallet:', error);
+      throw error;
     } finally {
       set({ isLoading: false });
     }
   },
-  
+
   deleteWallet: async (id) => {
-    set({ isLoading: true, error: null });
-    
+    set({ isLoading: true });
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        throw new Error('No authenticated session found');
-      }
-      
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
       const { error } = await supabase
         .from('wallets')
         .delete()
-        .eq('id', id);
-        
+        .eq('id', id)
+        .eq('user_id', user.id);
+
       if (error) throw error;
       
-      set(state => ({
-        wallets: state.wallets.filter(wallet => wallet.id !== id),
-        selectedWallet: state.selectedWallet?.id === id ? null : state.selectedWallet
-      }));
-    } catch (error: any) {
-      set({ error: error.message });
-      console.error('Error deleting wallet:', error.message);
+      const { wallets } = get();
+      set({ 
+        wallets: wallets.filter(w => w.id !== id),
+        selectedWallet: get().selectedWallet?.id === id ? null : get().selectedWallet
+      });
+    } catch (error) {
+      console.error('Error deleting wallet:', error);
+      throw error;
     } finally {
       set({ isLoading: false });
     }
   },
-  
+
   selectWallet: (wallet) => {
     set({ selectedWallet: wallet });
-  }
+  },
 }));

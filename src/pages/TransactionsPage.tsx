@@ -6,7 +6,7 @@ import { TransactionList } from '../components/transactions/TransactionList';
 import { Modal } from '../components/ui/Modal';
 import { TransactionForm } from '../components/transactions/TransactionForm';
 import { Input } from '../components/ui/Input';
-import { Select } from '../components/ui/Select';
+import { CustomSelect } from '../components/ui/CustomSelect';
 import { useWalletStore } from '../store/walletStore';
 import { useTransactionStore } from '../store/transactionStore';
 import { Transaction, TRANSACTION_TYPES } from '../types';
@@ -138,7 +138,7 @@ export const TransactionsPage: React.FC = () => {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 leftIcon={<Search size={16} />}
               />
-              <Select
+              <CustomSelect
                 label="Transaction Type"
                 options={typeOptions}
                 value={filterType}

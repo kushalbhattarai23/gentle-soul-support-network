@@ -1,161 +1,183 @@
-import React, { useState, useEffect } from 'react';
-import { Calendar, DollarSign, Tag, FileText } from 'lucide-react';
-import { Input } from '../ui/Input';
-import { Button } from '../ui/Button';
-import { Select } from '../ui/Select';
-import { Transaction, Wallet } from '../../types';
-import { useCategoryStore } from '../../store/categoryStore';
+import React, { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useWalletStore } from '@/store/walletStore';
+import { useCategoryStore } from '@/store/categoryStore';
+import { useTransactionStore } from '@/store/transactionStore';
+import { useToast } from '@/hooks/use-toast';
+
+type TransactionType = 'income' | 'expense' | 'transfer';
 
 interface TransactionFormProps {
-  transaction?: Transaction;
-  wallets: Wallet[];
-  selectedWalletId?: string;
-  onSubmit: (data: Omit<Transaction, 'id' | 'user_id' | 'created_at'>) => void;
-  isLoading: boolean;
+  onSuccess?: () => void;
 }
 
-export const TransactionForm: React.FC<TransactionFormProps> = ({
-  transaction,
-  wallets,
-  selectedWalletId,
-  onSubmit,
-  isLoading,
-}) => {
-  const { categories, fetchCategories } = useCategoryStore();
-  const today = new Date().toISOString().split('T')[0];
+export const TransactionForm: React.FC<TransactionFormProps> = ({ onSuccess }) => {
+  const { toast } = useToast();
+  const { wallets } = useWalletStore();
+  const { categories } = useCategoryStore();
+  const { addTransaction } = useTransactionStore();
   
-  const [date, setDate] = useState(today);
-  const [transactionType, setTransactionType] = useState('expense');
-  const [category, setCategory] = useState('');
-  const [reason, setReason] = useState('');
-  const [walletId, setWalletId] = useState('');
-  const [amount, setAmount] = useState('');
-  const [error, setError] = useState('');
+  const [formData, setFormData] = useState({
+    type: 'expense' as TransactionType,
+    amount: '',
+    reason: '',
+    category_id: '',
+    wallet_id: '',
+    date: new Date().toISOString().split('T')[0]
+  });
   
-  useEffect(() => {
-    fetchCategories();
-  }, [fetchCategories]);
-  
-  useEffect(() => {
-    if (categories.length > 0 && !category) {
-      setCategory(categories[0].name);
-    }
-  }, [categories, category]);
-  
-  useEffect(() => {
-    if (transaction) {
-      setDate(transaction.date);
-      setTransactionType(transaction.income ? 'income' : 'expense');
-      setCategory(transaction.type);
-      setReason(transaction.reason);
-      setWalletId(transaction.wallet_id);
-      setAmount(transaction.income ? transaction.income.toString() : transaction.expense ? transaction.expense.toString() : '');
-    }
-  }, [transaction]);
-  
-  useEffect(() => {
-    if (selectedWalletId) {
-      setWalletId(selectedWalletId);
-    } else if (wallets.length === 1) {
-      setWalletId(wallets[0].id);
-    }
-  }, [selectedWalletId, wallets]);
-  
-  const handleSubmit = (e: React.FormEvent) => {
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setError('');
-    
-    if (!walletId) {
-      setError('Please select a wallet');
+    if (!formData.amount || !formData.reason || !formData.wallet_id) {
+      toast({
+        title: "Error",
+        description: "Please fill in all required fields",
+        variant: "destructive",
+      });
       return;
     }
-    
-    const parsedAmount = parseFloat(amount);
-    
-    onSubmit({
-      date,
-      type: category,
-      income: transactionType === 'income' ? parsedAmount : undefined,
-      expense: transactionType === 'expense' ? parsedAmount : undefined,
-      reason,
-      wallet_id: walletId,
-    });
+
+    setLoading(true);
+    try {
+      const transactionData = {
+        ...formData,
+        amount: parseFloat(formData.amount),
+        income: formData.type === 'income' ? parseFloat(formData.amount) : null,
+        expense: formData.type === 'expense' ? parseFloat(formData.amount) : null,
+        user_id: 'temp-user-id' // This should come from auth
+      };
+
+      await addTransaction(transactionData);
+      
+      toast({
+        title: "Success",
+        description: "Transaction added successfully!",
+      });
+
+      setFormData({
+        type: 'expense',
+        amount: '',
+        reason: '',
+        category_id: '',
+        wallet_id: '',
+        date: new Date().toISOString().split('T')[0]
+      });
+      
+      onSuccess?.();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to add transaction",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
-  
-  const transactionTypeOptions = [
-    { value: 'income', label: 'Income' },
-    { value: 'expense', label: 'Expense' },
-  ];
-  
-  const categoryOptions = categories.map(cat => ({
-    value: cat.name,
-    label: cat.name,
-  }));
-  
-  const walletOptions = wallets.map(wallet => ({
-    value: wallet.id,
-    label: `${wallet.name} (${wallet.currency})`,
-  }));
-  
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <Input
-        label="Date"
-        type="date"
-        value={date}
-        onChange={(e) => setDate(e.target.value)}
-        required
-        leftIcon={<Calendar size={18} />}
-      />
-      
-      <Select
-        label="Transaction Type"
-        options={transactionTypeOptions}
-        value={transactionType}
-        onChange={setTransactionType}
-        required
-      />
-      
-      <Select
-        label="Category"
-        options={categoryOptions}
-        value={category}
-        onChange={setCategory}
-        required
-      />
-      
-      <Input
-        label="Reason"
-        placeholder="Enter transaction reason"
-        value={reason}
-        onChange={(e) => setReason(e.target.value)}
-        required
-        leftIcon={<FileText size={18} />}
-      />
-      
-      <Select
-        label="Wallet"
-        options={walletOptions}
-        value={walletId}
-        onChange={setWalletId}
-        required
-        error={error}
-      />
-      
-      <Input
-        label={`${transactionType === 'income' ? 'Income' : 'Expense'} Amount`}
-        type="number"
-        step="0.01"
-        placeholder="0.00"
-        value={amount}
-        onChange={(e) => setAmount(e.target.value)}
-        required
-        leftIcon={<DollarSign size={18} className={transactionType === 'income' ? 'text-emerald-500' : 'text-red-500'} />}
-      />
-      
-      <Button type="submit" isLoading={isLoading} className="w-full mt-6">
-        {transaction ? 'Update Transaction' : 'Create Transaction'}
-      </Button>
-    </form>
+    <Card>
+      <CardHeader>
+        <CardTitle>Add Transaction</CardTitle>
+        <CardDescription>Record a new income or expense</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="type">Type</Label>
+              <Select value={formData.type} onValueChange={(value: TransactionType) => setFormData({ ...formData, type: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="income">Income</SelectItem>
+                  <SelectItem value="expense">Expense</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <Label htmlFor="amount">Amount</Label>
+              <Input
+                id="amount"
+                type="number"
+                step="0.01"
+                value={formData.amount}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, amount: e.target.value })}
+                placeholder="0.00"
+                required
+              />
+            </div>
+          </div>
+
+          <div>
+            <Label htmlFor="reason">Description</Label>
+            <Input
+              id="reason"
+              value={formData.reason}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, reason: e.target.value })}
+              placeholder="What was this transaction for?"
+              required
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="wallet">Wallet</Label>
+              <Select value={formData.wallet_id} onValueChange={(value: string) => setFormData({ ...formData, wallet_id: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select wallet" />
+                </SelectTrigger>
+                <SelectContent>
+                  {wallets.map((wallet: any) => (
+                    <SelectItem key={wallet.id} value={wallet.id}>
+                      {wallet.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="category">Category</Label>
+              <Select value={formData.category_id} onValueChange={(value: string) => setFormData({ ...formData, category_id: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((category: any) => (
+                    <SelectItem key={category.id} value={category.id}>
+                      {category.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div>
+            <Label htmlFor="date">Date</Label>
+            <Input
+              id="date"
+              type="date"
+              value={formData.date}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, date: e.target.value })}
+              required
+            />
+          </div>
+
+          <Button type="submit" disabled={loading} className="w-full">
+            {loading ? 'Adding...' : 'Add Transaction'}
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
   );
 };

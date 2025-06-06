@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { CreditCard, DollarSign } from 'lucide-react';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
-import { Select } from '../ui/Select';
+import { CustomSelect } from '../ui/CustomSelect';
 import { Wallet } from '../../types';
 
 interface WalletFormProps {
@@ -71,7 +71,7 @@ export const WalletForm: React.FC<WalletFormProps> = ({
         leftIcon={<DollarSign size={18} />}
       />
       
-      <Select
+      <CustomSelect
         label="Currency"
         options={currencies}
         value={currency}

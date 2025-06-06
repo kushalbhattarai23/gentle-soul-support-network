@@ -190,6 +190,7 @@ export type Database = {
       }
       transactions: {
         Row: {
+          category_id: string | null
           created_at: string
           date: string
           expense: number | null
@@ -201,6 +202,7 @@ export type Database = {
           wallet_id: string
         }
         Insert: {
+          category_id?: string | null
           created_at?: string
           date: string
           expense?: number | null
@@ -212,6 +214,7 @@ export type Database = {
           wallet_id: string
         }
         Update: {
+          category_id?: string | null
           created_at?: string
           date?: string
           expense?: number | null
@@ -223,6 +226,13 @@ export type Database = {
           wallet_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "transactions_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "transactions_wallet_id_fkey"
             columns: ["wallet_id"]

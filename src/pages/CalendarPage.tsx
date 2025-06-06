@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { MainLayout } from '../components/layout/MainLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
-import { Select } from '../components/ui/Select';
+import { CustomSelect } from '../components/ui/CustomSelect';
 import { useTransactionStore } from '../store/transactionStore';
 import { useWalletStore } from '../store/walletStore';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
@@ -114,7 +114,7 @@ const formatCurrency = (amount: number) => {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <h2 className="text-2xl font-bold text-slate-900">Financial Reports</h2>
           <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-            <Select
+            <CustomSelect
               options={[
                 { value: 'week', label: 'This Week' },
                 { value: 'month', label: 'This Month' },
@@ -124,7 +124,7 @@ const formatCurrency = (amount: number) => {
               onChange={setTimeframe}
               className="w-full sm:w-40"
             />
-            <Select
+            <CustomSelect
               options={[
                 { value: 'income', label: 'Income' },
                 { value: 'expense', label: 'Expense' }

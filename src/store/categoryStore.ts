@@ -1,130 +1,119 @@
 import { create } from 'zustand';
-import { supabase } from '../lib/supabase';
-import { Category } from '../types';
+import { supabase } from '../integrations/supabase/client';
 
-interface CategoryState {
+interface Category {
+  id: string;
+  name: string;
+  color: string;
+  user_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface CategoryStore {
   categories: Category[];
   isLoading: boolean;
-  error: string | null;
   fetchCategories: () => Promise<void>;
   addCategory: (category: Omit<Category, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => Promise<void>;
-  updateCategory: (id: string, updates: Partial<Category>) => Promise<void>;
+  updateCategory: (id: string, category: Partial<Category>) => Promise<void>;
   deleteCategory: (id: string) => Promise<void>;
 }
 
-export const useCategoryStore = create<CategoryState>((set) => ({
+export const useCategoryStore = create<CategoryStore>((set, get) => ({
   categories: [],
   isLoading: false,
-  error: null,
-  
+
   fetchCategories: async () => {
-    set({ isLoading: true, error: null });
-    
+    set({ isLoading: true });
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        throw new Error('No authenticated session found');
-      }
-      
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
       const { data, error } = await supabase
         .from('categories')
         .select('*')
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
-        
+
       if (error) throw error;
-      
-      set({ categories: data as Category[] });
-    } catch (error: any) {
-      set({ error: error.message });
-      console.error('Error fetching categories:', error.message);
+      set({ categories: data || [] });
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+      set({ categories: [] });
     } finally {
       set({ isLoading: false });
     }
   },
-  
-  addCategory: async (category) => {
-    set({ isLoading: true, error: null });
-    
+
+  addCategory: async (categoryData) => {
+    set({ isLoading: true });
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        throw new Error('No authenticated session found');
-      }
-      
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
       const { data, error } = await supabase
         .from('categories')
-        .insert([{ ...category, user_id: session.user.id }])
-        .select();
-        
+        .insert([{ ...categoryData, user_id: user.id }])
+        .select()
+        .single();
+
       if (error) throw error;
       
-      set(state => ({ 
-        categories: [data[0] as Category, ...state.categories]
-      }));
-    } catch (error: any) {
-      set({ error: error.message });
-      console.error('Error adding category:', error.message);
+      const { categories } = get();
+      set({ categories: [data, ...categories] });
+    } catch (error) {
+      console.error('Error adding category:', error);
+      throw error;
     } finally {
       set({ isLoading: false });
     }
   },
-  
-  updateCategory: async (id, updates) => {
-    set({ isLoading: true, error: null });
-    
+
+  updateCategory: async (id, categoryData) => {
+    set({ isLoading: true });
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        throw new Error('No authenticated session found');
-      }
-      
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
       const { data, error } = await supabase
         .from('categories')
-        .update(updates)
+        .update(categoryData)
         .eq('id', id)
-        .select();
-        
+        .eq('user_id', user.id)
+        .select()
+        .single();
+
       if (error) throw error;
       
-      set(state => ({
-        categories: state.categories.map(category => 
-          category.id === id ? { ...category, ...updates } : category
-        )
-      }));
-    } catch (error: any) {
-      set({ error: error.message });
-      console.error('Error updating category:', error.message);
+      const { categories } = get();
+      set({ categories: categories.map(c => c.id === id ? data : c) });
+    } catch (error) {
+      console.error('Error updating category:', error);
+      throw error;
     } finally {
       set({ isLoading: false });
     }
   },
-  
+
   deleteCategory: async (id) => {
-    set({ isLoading: true, error: null });
-    
+    set({ isLoading: true });
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        throw new Error('No authenticated session found');
-      }
-      
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
       const { error } = await supabase
         .from('categories')
         .delete()
-        .eq('id', id);
-        
+        .eq('id', id)
+        .eq('user_id', user.id);
+
       if (error) throw error;
       
-      set(state => ({
-        categories: state.categories.filter(category => category.id !== id)
-      }));
-    } catch (error: any) {
-      set({ error: error.message });
-      console.error('Error deleting category:', error.message);
+      const { categories } = get();
+      set({ categories: categories.filter(c => c.id !== id) });
+    } catch (error) {
+      console.error('Error deleting category:', error);
+      throw error;
     } finally {
       set({ isLoading: false });
     }
