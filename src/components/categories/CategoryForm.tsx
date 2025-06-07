@@ -40,7 +40,7 @@ export const CategoryForm: React.FC<CategoryFormProps> = ({
     }
   }, [category]);
   
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
     onSubmit({
