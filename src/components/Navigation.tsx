@@ -20,7 +20,7 @@ export const Navigation: React.FC = () => {
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center space-x-8">
             <Link to="/" className="text-xl font-bold text-primary">
-              TV Tracker
+              Personal Hub
             </Link>
             <NavigationMenu>
               <NavigationMenuList>

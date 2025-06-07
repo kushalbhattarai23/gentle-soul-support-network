@@ -49,6 +49,10 @@ export const CategoryForm: React.FC<CategoryFormProps> = ({
     });
   };
   
+  const handleColorChange = (colorOption: string) => {
+    setColor(colorOption);
+  };
+  
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
@@ -82,7 +86,7 @@ export const CategoryForm: React.FC<CategoryFormProps> = ({
                   color === colorOption ? 'border-slate-400' : 'border-transparent'
                 }`}
                 style={{ backgroundColor: colorOption }}
-                onClick={() => setColor(colorOption)}
+                onClick={() => handleColorChange(colorOption)}
               />
             ))}
           </div>
