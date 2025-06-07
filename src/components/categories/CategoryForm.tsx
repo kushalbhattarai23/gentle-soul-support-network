@@ -82,7 +82,7 @@ export const CategoryForm: React.FC<CategoryFormProps> = ({
                   color === colorOption ? 'border-slate-400' : 'border-transparent'
                 }`}
                 style={{ backgroundColor: colorOption }}
-                onClick={(e: React.MouseEvent<HTMLButtonElement>) => setColor(colorOption)}
+                onClick={() => setColor(colorOption)}
               />
             ))}
           </div>
