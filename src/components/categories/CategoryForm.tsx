@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { Tag, Palette } from 'lucide-react';
-import { Input } from '../ui/input';
-import { Button } from '../ui/Button';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 
 interface Category {
   id: string;
@@ -89,7 +89,7 @@ export const CategoryForm: React.FC<CategoryFormProps> = ({
         </div>
       </div>
       
-      <Button type="submit" isLoading={isLoading} className="w-full mt-6">
+      <Button type="submit" disabled={isLoading} className="w-full mt-6">
         {category ? 'Update Category' : 'Create Category'}
       </Button>
     </form>
