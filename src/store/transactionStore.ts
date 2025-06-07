@@ -16,7 +16,7 @@ interface Transaction {
 interface TransactionStore {
   transactions: Transaction[];
   isLoading: boolean;
-  fetchTransactions: () => Promise<void>;
+  fetchTransactions: (walletId?: string) => Promise<void>;
   addTransaction: (transaction: Omit<Transaction, 'id' | 'user_id' | 'created_at'>) => Promise<void>;
   updateTransaction: (id: string, transaction: Partial<Transaction>) => Promise<void>;
   deleteTransaction: (id: string) => Promise<void>;
@@ -26,17 +26,22 @@ export const useTransactionStore = create<TransactionStore>((set, get) => ({
   transactions: [],
   isLoading: false,
   
-  fetchTransactions: async () => {
+  fetchTransactions: async (walletId?: string) => {
     set({ isLoading: true });
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      const { data, error } = await supabase
+      let query = supabase
         .from('transactions')
         .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+        .eq('user_id', user.id);
+
+      if (walletId) {
+        query = query.eq('wallet_id', walletId);
+      }
+
+      const { data, error } = await query.order('created_at', { ascending: false });
 
       if (error) throw error;
       set({ transactions: data || [] });

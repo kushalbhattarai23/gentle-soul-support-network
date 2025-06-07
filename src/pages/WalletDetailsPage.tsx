@@ -1,9 +1,10 @@
+
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Plus, ArrowLeft } from 'lucide-react';
 import { MainLayout } from '../components/layout/MainLayout';
 import { Button } from '../components/ui/Button';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { TransactionList } from '../components/transactions/TransactionList';
 import { Modal } from '../components/ui/Modal';
 import { TransactionForm } from '../components/transactions/TransactionForm';
@@ -14,7 +15,7 @@ import { Transaction } from '../types';
 export const WalletDetailsPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   
-  const { wallets, fetchWallets, selectedWallet, selectWallet } = useWalletStore();
+  const { wallets, fetchWallets } = useWalletStore();
   const {
     transactions,
     fetchTransactions,
@@ -29,19 +30,18 @@ export const WalletDetailsPage: React.FC = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   
+  // Find the current wallet
+  const selectedWallet = wallets.find(w => w.id === id) || null;
+  
   useEffect(() => {
     fetchWallets();
   }, [fetchWallets]);
   
   useEffect(() => {
-    if (id && wallets.length > 0) {
-      const wallet = wallets.find(w => w.id === id);
-      if (wallet) {
-        selectWallet(wallet);
-        fetchTransactions(id);
-      }
+    if (id) {
+      fetchTransactions();
     }
-  }, [id, wallets, selectWallet, fetchTransactions]);
+  }, [id, fetchTransactions]);
   
   const formatCurrency = (amount: number, currency: string) => {
     return new Intl.NumberFormat('en-US', {
