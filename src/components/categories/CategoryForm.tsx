@@ -51,14 +51,21 @@ export const CategoryForm: React.FC<CategoryFormProps> = ({
   
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <Input
-        label="Category Name"
-        placeholder="e.g., Food, Transportation, Entertainment"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        required
-        leftIcon={<Tag size={18} />}
-      />
+      <div>
+        <label className="block text-sm font-medium text-slate-700 mb-2">
+          Category Name
+        </label>
+        <div className="relative">
+          <Tag size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" />
+          <Input
+            placeholder="e.g., Food, Transportation, Entertainment"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+            className="pl-10"
+          />
+        </div>
+      </div>
       
       <div>
         <label className="block text-sm font-medium text-slate-700 mb-2">

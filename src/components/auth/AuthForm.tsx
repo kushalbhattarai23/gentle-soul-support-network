@@ -51,24 +51,38 @@ export const AuthForm: React.FC<AuthFormProps> = ({ mode }) => {
       </CardHeader>
       <form onSubmit={handleSubmit}>
         <CardContent className="space-y-4">
-          <Input
-            label="Email"
-            type="email"
-            placeholder="Enter your email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            leftIcon={<Mail size={18} />}
-          />
-          <Input
-            label="Password"
-            type="password"
-            placeholder="Enter your password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            leftIcon={<Lock size={18} />}
-          />
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Email
+            </label>
+            <div className="relative">
+              <Mail size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" />
+              <Input
+                type="email"
+                placeholder="Enter your email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="pl-10"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Password
+            </label>
+            <div className="relative">
+              <Lock size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" />
+              <Input
+                type="password"
+                placeholder="Enter your password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                className="pl-10"
+              />
+            </div>
+          </div>
           {error && (
             <div className="p-3 bg-red-50 text-red-700 text-sm rounded border border-red-200">
               {error}
