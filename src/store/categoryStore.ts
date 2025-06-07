@@ -1,6 +1,6 @@
 
 import { create } from 'zustand';
-import { supabase } from '../integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Category {
   id: string;
@@ -8,18 +8,19 @@ interface Category {
   color: string;
   user_id: string;
   created_at: string;
+  updated_at: string;
 }
 
-interface CategoryStore {
+interface CategoryState {
   categories: Category[];
   isLoading: boolean;
   fetchCategories: () => Promise<void>;
-  addCategory: (category: Omit<Category, 'id' | 'user_id' | 'created_at'>) => Promise<void>;
+  createCategory: (category: Omit<Category, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => Promise<void>;
   updateCategory: (id: string, category: Partial<Category>) => Promise<void>;
   deleteCategory: (id: string) => Promise<void>;
 }
 
-export const useCategoryStore = create<CategoryStore>((set, get) => ({
+export const useCategoryStore = create<CategoryState>((set, get) => ({
   categories: [],
   isLoading: false,
   
@@ -34,7 +35,7 @@ export const useCategoryStore = create<CategoryStore>((set, get) => ({
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
-
+      
       if (error) throw error;
       set({ categories: data || [] });
     } catch (error) {
@@ -44,8 +45,8 @@ export const useCategoryStore = create<CategoryStore>((set, get) => ({
       set({ isLoading: false });
     }
   },
-
-  addCategory: async (categoryData) => {
+  
+  createCategory: async (categoryData) => {
     set({ isLoading: true });
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -56,19 +57,19 @@ export const useCategoryStore = create<CategoryStore>((set, get) => ({
         .insert([{ ...categoryData, user_id: user.id }])
         .select()
         .single();
-
+      
       if (error) throw error;
       
       const { categories } = get();
       set({ categories: [data, ...categories] });
     } catch (error) {
-      console.error('Error adding category:', error);
+      console.error('Error creating category:', error);
       throw error;
     } finally {
       set({ isLoading: false });
     }
   },
-
+  
   updateCategory: async (id, categoryData) => {
     set({ isLoading: true });
     try {
@@ -82,7 +83,7 @@ export const useCategoryStore = create<CategoryStore>((set, get) => ({
         .eq('user_id', user.id)
         .select()
         .single();
-
+      
       if (error) throw error;
       
       const { categories } = get();
@@ -94,7 +95,7 @@ export const useCategoryStore = create<CategoryStore>((set, get) => ({
       set({ isLoading: false });
     }
   },
-
+  
   deleteCategory: async (id) => {
     set({ isLoading: true });
     try {
@@ -106,7 +107,7 @@ export const useCategoryStore = create<CategoryStore>((set, get) => ({
         .delete()
         .eq('id', id)
         .eq('user_id', user.id);
-
+      
       if (error) throw error;
       
       const { categories } = get();
