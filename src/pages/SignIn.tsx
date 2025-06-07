@@ -26,6 +26,7 @@ export const SignIn: React.FC = () => {
         title: "Welcome back!",
         description: "You've been signed in successfully.",
       });
+      // Redirect to landing page after successful sign-in
       navigate('/');
     } catch (error: any) {
       toast({
